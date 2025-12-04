@@ -14,151 +14,138 @@ from typing import Tuple, List, Optional
 from collections import deque
 import heapq
 
-
 def bfs(env, start: Tuple[int, int], goal: Tuple[int, int]) -> Tuple[Optional[List], float, int]:
     """
     Breadth-First Search - Find shortest path in terms of number of steps.
-    
-    Algorithm:
-        1. Use a queue (FIFO) to explore nodes level by level
-        2. Keep track of visited nodes to avoid cycles
-        3. Store parent pointers to reconstruct path
-        4. Return when goal is found
-    
-    Args:
-        env: GridWorld environment
-        start: Starting position (row, col)
-        goal: Goal position (row, col)
-    
-    Returns:
-        path: List of (row, col) tuples from start to goal (None if no path)
-        cost: Total path cost
-        expanded: Number of nodes expanded
-    
-    Example:
-        >>> env = GridWorld(10, 10)
-        >>> path, cost, expanded = bfs(env, (0,0), (9,9))
-        >>> print(f"Path length: {len(path)}, Cost: {cost}")
-    """
-    
-    # TODO: Implement BFS
-    # 
-    # Hints:
-    # - Use collections.deque() for the queue
-    # - Keep a visited set to track explored nodes
-    # - Store parent pointers in a dictionary: parent[child] = parent_node
-    # - Use env.get_neighbors(pos) to get valid adjacent cells
-    # - Count expanded nodes
-    # - Reconstruct path by following parent pointers backwards
-    
-    # Your code here:
-    
-    raise NotImplementedError("BFS not implemented yet - this is your task!")
-    
-    # Example structure (delete this and implement properly):
     """
     queue = deque([start])
     visited = {start}
     parent = {start: None}
     expanded = 0
-    
+
     while queue:
         current = queue.popleft()
         expanded += 1
-        
+
+        # Check goal
         if current == goal:
-            # Reconstruct path
             path = []
-            # ... your code to build path from parent pointers ...
-            cost = len(path) - 1  # BFS cost is number of steps
+
+            # Backtracking
+            temp_node = current
+            while temp_node is not None:
+                path.append(temp_node)
+                temp_node = parent[temp_node]
+
+            path.reverse()
+
+            # BFS cost = number of steps
+            cost = len(path) - 1
             return path, cost, expanded
-        
+
+        # Explore neighbors
         for neighbor in env.get_neighbors(current):
             if neighbor not in visited:
                 visited.add(neighbor)
                 parent[neighbor] = current
                 queue.append(neighbor)
-    
-    return None, float('inf'), expanded  # No path found
-    """
+
+    # No path found
+    return None, float("inf"), expanded
 
 
 def ucs(env, start: Tuple[int, int], goal: Tuple[int, int]) -> Tuple[Optional[List], float, int]:
     """
     Uniform Cost Search - Find path with lowest total cost.
-    
-    Algorithm:
-        1. Use a priority queue (heap) ordered by path cost
-        2. Always expand the lowest-cost node first
-        3. Update costs when better paths are found
-        4. Return when goal is expanded (not just added to frontier)
-    
-    Args:
-        env: GridWorld environment
-        start: Starting position (row, col)
-        goal: Goal position (row, col)
-    
-    Returns:
-        path: List of (row, col) tuples from start to goal (None if no path)
-        cost: Total path cost
-        expanded: Number of nodes expanded
-    
-    Note:
-        UCS is essentially Dijkstra's algorithm.
-        It finds the optimal path when edge costs are non-negative.
     """
-    
-    # TODO: Implement UCS
-    #
-    # Hints:
-    # - Use heapq for priority queue: heapq.heappush(heap, (priority, item))
-    # - Priority should be cumulative path cost: g(n)
-    # - Keep track of best cost to reach each node
-    # - Use env.get_cost(pos1, pos2) to get edge costs
-    # - Don't return immediately when goal is added to frontier!
-    # - Only return when goal is EXPANDED (popped from heap)
-    
-    # Your code here:
-    
-    raise NotImplementedError("UCS not implemented yet - this is your task!")
-    
-    # Example structure (delete and implement properly):
-    """
-    frontier = [(0, start)]  # (cost, position)
+    # Priority queue: (cost, position)
+    frontier = [(0, start)]
     explored = set()
     cost_so_far = {start: 0}
     parent = {start: None}
     expanded = 0
-    
+
     while frontier:
         current_cost, current = heapq.heappop(frontier)
-        
+
         if current in explored:
             continue
-        
+
         explored.add(current)
-        expanded += 1
-        
+
+        # Check reached goal
         if current == goal:
-            # Reconstruct path
-            # ... your code ...
+            path = []
+            # Backtrack
+            while current is not None:
+                path.append(current)
+                current = parent[current]
+            path.reverse()
             return path, current_cost, expanded
-        
+
+        expanded += 1
+
+        # Explore neighbors
         for neighbor in env.get_neighbors(current):
             new_cost = current_cost + env.get_cost(current, neighbor)
-            
+
             if neighbor not in explored:
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                     cost_so_far[neighbor] = new_cost
                     parent[neighbor] = current
                     heapq.heappush(frontier, (new_cost, neighbor))
-    
-    return None, float('inf'), expanded
-    """
+
+    # Path not found
+    return None, float("inf"), expanded
+
 
 
 def astar(env, start: Tuple[int, int], goal: Tuple[int, int], 
           heuristic='manhattan') -> Tuple[Optional[List], float, int]:
+
+    if heuristic == 'manhattan':
+        h = lambda pos: env.manhattan_distance(pos, goal)
+    elif heuristic == 'euclidean':
+        h = lambda pos: env.euclidean_distance(pos,goal)
+    g_score = {start:0}
+    f_score = {start:h(start)}
+    frontier = [ (f_score[start],start)]
+    expanded = 0
+    explored = set()
+    parent = {start:None}
+    while frontier:
+        current_f,current = heapq.heappop(frontier)
+        if current in explored:
+            continue
+        explored.add(current)
+        expanded +=1
+        if current == goal:
+            path = reconstruct_path(parent,start,goal)
+            return path,g_score[current],expanded
+        for neighbor in env.get_neighbors(current):
+            if neighbor in explored:
+                continue
+            tentative_g = g_score[current] + env.get_cost(current,neighbor)
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                g_score[neighbor] = tentative_g
+                f_score[neighbor] = tentative_g + h(neighbor)
+                parent[neighbor] = current
+                heapq.heappush(frontier,(f_score[neighbor],neighbor))
+    
+    return None,float('inf'),expanded
+
+           
+             
+
+          
+
+
+
+
+ 
+
+
+
     """
     A* Search - Find optimal path using cost + heuristic.
     
@@ -199,6 +186,8 @@ def astar(env, start: Tuple[int, int], goal: Tuple[int, int],
     # - When reconstructing path, return actual g(goal), not f(goal)
     
     # Your code here:
+
+
     
     raise NotImplementedError("A* not implemented yet - this is your task!")
     
@@ -267,10 +256,15 @@ def reconstruct_path(parent: dict, start: Tuple[int, int], goal: Tuple[int, int]
         >>> reconstruct_path(parent, (0,0), (2,1))
         [(0,0), (0,1), (1,1), (2,1)]
     """
-    # TODO: Implement path reconstruction
-    #
-    # Hint: Follow parent pointers backwards from goal to start, then reverse
-    
+  
+    path = []
+    current = goal
+    while current is not None:
+        path.append(current)
+        current = parent.get(current)
+        current = parent.get(current)
+    path.reverse()
+    return path
     raise NotImplementedError("Path reconstruction not implemented yet!")
 
 
