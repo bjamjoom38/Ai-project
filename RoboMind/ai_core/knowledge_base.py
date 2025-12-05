@@ -72,7 +72,22 @@ class KnowledgeBase:
         return query in self.facts
     
     def infer(self):
+        """
+        Apply forward chaining to derive new facts from rules.
         
+        Forward chaining:
+            1. For each rule: check if all premises are satisfied
+            2. If yes, add conclusion to facts
+            3. Repeat until no new facts can be derived
+        
+        Example:
+            >>> kb.tell("Safe(2,3)")
+            >>> kb.tell("Free(2,3)")
+            >>> kb.add_rule(["Safe(2,3)", "Free(2,3)"], "CanMove(2,3)")
+            >>> kb.infer()
+            >>> kb.ask("CanMove(2,3)")
+            True
+        """
         changed = True
 
         # Keep looping until no new facts are added
@@ -81,15 +96,13 @@ class KnowledgeBase:
 
             # Check all rules
             for premises, conclusion in self.rules:
-                # If
-                #  all premises are known
+                # If all premises are known
                 if all(p in self.facts for p in premises):
                     # And the conclusion is new
                     if conclusion not in self.facts:
                         self.facts.add(conclusion)
                         print(f"Inferred new fact: {conclusion}")
                         changed = True
-
     
     def __str__(self) -> str:
         """String representation of KB."""
